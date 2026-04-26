@@ -1,0 +1,68 @@
+services:
+  n8n:
+    image: n8nio/n8n
+    container_name: n8n-cobrapp
+    restart: unless-stopped
+    ports:
+      - "5678:5678"
+    environment:
+      - N8N_BASIC_AUTH_ACTIVE=true
+      - N8N_BASIC_AUTH_USER=admin
+      - N8N_BASIC_AUTH_PASSWORD=${N8N_PASSWORD}
+      - N8N_HOST=outage-flier-resort.ngrok-free.dev
+      - N8N_PROTOCOL=https
+      - WEBHOOK_URL=https://outage-flier-resort.ngrok-free.dev/
+      - GENERIC_TIMEZONE=America/Lima
+      - TZ=America/Lima
+      - N8N_RUNNERS_ENABLED=true
+      - N8N_DIAGNOSTICS_ENABLED=false
+      - N8N_HIRING_BANNER_ENABLED=false
+      - N8N_TEMPLATES_ENABLED=false
+      - N8N_PERSONALIZATION_ENABLED=false
+    volumes:
+      - n8n_data:/home/node/.n8n
+      - ./database:/home/node/database
+    networks:
+      - cobrapp-net
+    depends_on:
+      - python-api
+      - ngrok
+
+  python-api:
+    build: ./python-api
+    container_name: python-api-cobrapp
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    environment:
+      - TZ=America/Lima
+    volumes:
+      - ./pagos:/app/pagos
+      - ./database:/app/database
+    networks:
+      - cobrapp-net
+    healthcheck:
+      test: ["CMD", "python3", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  ngrok:
+    image: ngrok/ngrok:latest
+    container_name: ngrok-cobrapp
+    restart: unless-stopped
+    environment:
+      - NGROK_AUTHTOKEN=${NGROK_AUTHTOKEN}
+    command: http --domain=outage-flier-resort.ngrok-free.dev n8n:5678
+    ports:
+      - "4040:4040"
+    networks:
+      - cobrapp-net
+
+networks:
+  cobrapp-net:
+    driver: bridge
+
+volumes:
+  n8n_data:
