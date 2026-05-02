@@ -1,12 +1,77 @@
+# ============================================
+# CobrApp - .dockerignore
+# Excluye archivos innecesarios del build context
+# ============================================
+
+# ============ PYTHON ============
 __pycache__/
 *.pyc
 *.pyo
 *.pyd
 .Python
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Entornos virtuales (deben crearse dentro del contenedor)
 .env
 .venv
 venv/
-.pytest_cache/
+env/
+ENV/
+
+# ============ GIT ============
 .git/
 .gitignore
+.gitattributes
+
+# ============ DOCUMENTACIÓN ============
 *.md
+docs/
+INFORME*.docx
+INFORME*.pdf
+
+# ============ EDITORES E IDE ============
+.vscode/
+*.code-workspace
+.idea/
+*.iml
+
+# ============ SISTEMA OPERATIVO ============
+.DS_Store
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+*.lnk
+
+# ============ ARCHIVOS TEMPORALES Y LOGS ============
+*.log
+*.tmp
+*.temp
+*.bak
+*.backup
+*.old
+*.swp
+*.swo
+
+# ============ TESTS LOCALES ============
+test_images/
+imagenes_prueba/
+*.test.png
+*.test.jpg
+
+# ============ DATOS PERSISTENTES Y BACKUPS ============
+volumes/
+n8n_data/
+backups/
+*.sqlite
+*.db
+
+# ============ NODE (n8n local si aplica) ============
+node_modules/
+npm-debug.log*
+yarn-error.log*

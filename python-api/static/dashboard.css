@@ -1,0 +1,426 @@
+/* ============================================
+   CobrApp Dashboard - Estilos profesionales
+   Paleta sobria: azules y grises empresariales
+   ============================================ */
+
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
+    background: #f7f8fa;
+    color: #1a202c;
+    padding: 32px 24px;
+    min-height: 100vh;
+    -webkit-font-smoothing: antialiased;
+    line-height: 1.5;
+}
+
+.container {
+    max-width: 1280px;
+    margin: 0 auto;
+}
+
+/* ============ HEADER ============ */
+.header {
+    margin-bottom: 28px;
+    padding-bottom: 20px;
+    border-bottom: 1px solid #e5e7eb;
+}
+
+h1 {
+    font-size: 24px;
+    font-weight: 600;
+    margin-bottom: 6px;
+    color: #111827;
+    letter-spacing: -0.02em;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+h1 .icon-title {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    background: #eef2ff;
+    border-radius: 8px;
+    color: #4338ca;
+}
+
+.subtitle {
+    color: #6b7280;
+    font-size: 13px;
+    font-weight: 400;
+}
+
+/* ============ TOOLBAR ============ */
+.toolbar {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 24px;
+    flex-wrap: wrap;
+}
+
+.btn {
+    padding: 9px 16px;
+    border: 1px solid transparent;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    transition: all 0.15s ease;
+    font-family: inherit;
+}
+
+.btn-primary {
+    background: #1e40af;
+    color: white;
+    border-color: #1e40af;
+}
+
+.btn-primary:hover {
+    background: #1e3a8a;
+    border-color: #1e3a8a;
+}
+
+.btn-secondary {
+    background: white;
+    color: #374151;
+    border-color: #d1d5db;
+}
+
+.btn-secondary:hover {
+    background: #f9fafb;
+    border-color: #9ca3af;
+}
+
+.btn svg {
+    width: 14px;
+    height: 14px;
+}
+
+/* ============ STATS CARDS ============ */
+.stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 16px;
+    margin-bottom: 28px;
+}
+
+.stat-card {
+    background: white;
+    padding: 20px 22px;
+    border-radius: 10px;
+    border: 1px solid #e5e7eb;
+    transition: all 0.15s ease;
+    position: relative;
+}
+
+.stat-card:hover {
+    border-color: #d1d5db;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+}
+
+.stat-card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 10px;
+}
+
+.stat-label {
+    font-size: 12px;
+    color: #6b7280;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+.stat-icon {
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.stat-icon svg {
+    width: 16px;
+    height: 16px;
+}
+
+.stat-icon.indigo { background: #eef2ff; color: #4338ca; }
+.stat-icon.green  { background: #ecfdf5; color: #047857; }
+.stat-icon.purple { background: #f5f3ff; color: #6d28d9; }
+.stat-icon.blue   { background: #eff6ff; color: #1d4ed8; }
+.stat-icon.gray   { background: #f3f4f6; color: #4b5563; }
+
+.stat-value {
+    font-size: 26px;
+    font-weight: 600;
+    color: #111827;
+    letter-spacing: -0.02em;
+    line-height: 1.2;
+}
+
+.stat-value.money {
+    color: #047857;
+}
+
+.stat-sub {
+    font-size: 12px;
+    color: #6b7280;
+    margin-top: 6px;
+}
+
+.stat-sub.purple {
+    color: #6d28d9;
+    font-weight: 600;
+    font-size: 14px;
+}
+
+.stat-sub.blue {
+    color: #1d4ed8;
+    font-weight: 600;
+    font-size: 14px;
+}
+
+/* ============ TABLA ============ */
+table {
+    width: 100%;
+    background: white;
+    border-radius: 10px;
+    overflow: hidden;
+    border: 1px solid #e5e7eb;
+    border-collapse: separate;
+    border-spacing: 0;
+}
+
+thead {
+    background: #f9fafb;
+}
+
+th {
+    text-align: left;
+    padding: 12px 16px;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: #6b7280;
+    font-weight: 600;
+    border-bottom: 1px solid #e5e7eb;
+}
+
+td {
+    padding: 14px 16px;
+    border-bottom: 1px solid #f3f4f6;
+    font-size: 13px;
+    color: #374151;
+}
+
+tr:last-child td {
+    border-bottom: none;
+}
+
+tr:hover td {
+    background: #fafafa;
+}
+
+.monto {
+    font-weight: 600;
+    color: #047857;
+    font-variant-numeric: tabular-nums;
+}
+
+.op {
+    font-family: ui-monospace, "SF Mono", Menlo, monospace;
+    font-size: 12px;
+    color: #6b7280;
+}
+
+.badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 3px 9px;
+    border-radius: 6px;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    border: 1px solid transparent;
+}
+
+.badge.yape {
+    background: #f5f3ff;
+    color: #6d28d9;
+    border-color: #ddd6fe;
+}
+
+.badge.plin {
+    background: #eff6ff;
+    color: #1d4ed8;
+    border-color: #bfdbfe;
+}
+
+/* ============ EMPTY STATE ============ */
+.empty {
+    text-align: center;
+    padding: 56px 24px;
+    background: white;
+    border-radius: 10px;
+    border: 1px dashed #d1d5db;
+    color: #6b7280;
+    font-size: 14px;
+}
+
+.empty .empty-icon {
+    display: inline-flex;
+    width: 48px;
+    height: 48px;
+    background: #f3f4f6;
+    border-radius: 50%;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 12px;
+    color: #9ca3af;
+}
+
+.empty .empty-icon svg {
+    width: 24px;
+    height: 24px;
+}
+
+/* ============ HOME GRID (cards de bienvenida) ============ */
+.home-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 18px;
+    margin-top: 24px;
+}
+
+.home-card {
+    background: white;
+    padding: 32px;
+    border-radius: 10px;
+    border: 1px solid #e5e7eb;
+    text-decoration: none;
+    color: inherit;
+    transition: all 0.15s ease;
+    display: block;
+    position: relative;
+}
+
+.home-card:hover {
+    border-color: #1e40af;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+}
+
+.home-card .icon-wrap {
+    display: inline-flex;
+    width: 44px;
+    height: 44px;
+    background: #eff6ff;
+    color: #1e40af;
+    border-radius: 10px;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 16px;
+}
+
+.home-card .icon-wrap svg {
+    width: 22px;
+    height: 22px;
+}
+
+.home-card h2 {
+    font-size: 17px;
+    font-weight: 600;
+    margin-bottom: 6px;
+    color: #111827;
+    letter-spacing: -0.01em;
+}
+
+.home-card p {
+    color: #6b7280;
+    font-size: 13px;
+    line-height: 1.55;
+}
+
+.home-card .arrow {
+    position: absolute;
+    top: 32px;
+    right: 32px;
+    color: #9ca3af;
+    transition: all 0.15s ease;
+}
+
+.home-card:hover .arrow {
+    color: #1e40af;
+    transform: translateX(2px);
+}
+
+/* ============ REPORTE HERO ============ */
+.reporte-hero {
+    background: white;
+    border: 1px solid #e5e7eb;
+    padding: 36px;
+    border-radius: 10px;
+    margin-bottom: 20px;
+    position: relative;
+    overflow: hidden;
+}
+
+.reporte-hero::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, #047857, #10b981);
+}
+
+.reporte-hero .label {
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: #6b7280;
+    margin-bottom: 8px;
+    font-weight: 600;
+}
+
+.reporte-hero .monto {
+    font-size: 44px;
+    font-weight: 600;
+    color: #111827;
+    letter-spacing: -0.03em;
+    line-height: 1.1;
+    font-variant-numeric: tabular-nums;
+}
+
+.reporte-hero .info {
+    font-size: 13px;
+    color: #6b7280;
+    margin-top: 8px;
+}
+
+/* ============ FOOTER ============ */
+.footer {
+    margin-top: 40px;
+    padding-top: 20px;
+    border-top: 1px solid #e5e7eb;
+    text-align: center;
+    color: #9ca3af;
+    font-size: 12px;
+}
