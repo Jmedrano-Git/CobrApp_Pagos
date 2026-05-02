@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>CobrApp · Reporte del día</title>
+    <link rel="stylesheet" href="/static/dashboard.css">
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>
+                <span class="icon-title">
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+                    </svg>
+                </span>
+                Reporte del día — {{ fecha_hoy }}
+            </h1>
+            <p class="subtitle">Última actualización: {{ hora_actualizacion }}</p>
+        </div>
+
+        <div class="toolbar">
+            <a href="/dashboard" class="btn btn-secondary">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
+                </svg>
+                Volver al inicio
+            </a>
+            <a href="/dashboard/reporte" class="btn btn-primary">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+                </svg>
+                Actualizar
+            </a>
+        </div>
+
+        <div class="reporte-hero">
+            <div class="label">Total Recaudado Hoy</div>
+            <div class="monto">S/ {{ "%.2f"|format(monto_total) }}</div>
+            <div class="info">{{ total_pagos }} pago(s) registrado(s) · Generado automáticamente desde Google Sheets</div>
+        </div>
+
+        <div class="stats">
+            <div class="stat-card">
+                <div class="stat-card-header">
+                    <span class="stat-label">Yape</span>
+                    <span class="stat-icon purple">
+                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z"/>
+                        </svg>
+                    </span>
+                </div>
+                <div class="stat-value">{{ yape_count }} pago(s)</div>
+                <div class="stat-sub purple">S/ {{ "%.2f"|format(monto_yape) }}</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-card-header">
+                    <span class="stat-label">Plin</span>
+                    <span class="stat-icon blue">
+                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/>
+                        </svg>
+                    </span>
+                </div>
+                <div class="stat-value">{{ plin_count }} pago(s)</div>
+                <div class="stat-sub blue">S/ {{ "%.2f"|format(monto_plin) }}</div>
+            </div>
+        </div>
+
+        <div class="footer">CobrApp · API generada con FastAPI · Sistema interno de gestión</div>
+    </div>
+</body>
+</html>

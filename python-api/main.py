@@ -3,18 +3,22 @@ CobrApp OCR API
 ================
 Servicio FastAPI para procesamiento OCR de capturas de pago Yape/Plin.
 
-NOTA: el campo 'beneficiario' es el nombre que aparece EN la captura
-(destinatario del pago según Yape/Plin). El nombre del PAGADOR se
-obtiene aparte desde los metadatos del mensaje de Telegram en n8n.
-
 Endpoints:
   GET  /                  - Info de la API
   GET  /health            - Healthcheck (Docker)
   GET  /docs              - Swagger UI
   POST /procesar-imagen   - Procesa imagen y extrae datos del pago
+  GET  /pagos             - Lista de pagos del día (JSON)
+  GET  /reporte           - Reporte resumido del día (JSON)
+  GET  /dashboard         - Dashboard admin (HTML)
+  GET  /dashboard/pagos   - Tabla de pagos del día (HTML)
+  GET  /dashboard/reporte - Reporte del día (HTML)
 """
 
-from fastapi import FastAPI, UploadFile, File, HTTPException
+from fastapi import FastAPI, UploadFile, File, HTTPException, Request
+from fastapi.responses import HTMLResponse
+from fastapi.staticfiles import StaticFiles
+from fastapi.templating import Jinja2Templates
 import pytesseract
 import cv2
 import numpy as np
@@ -22,6 +26,8 @@ import re
 import hashlib
 import logging
 from datetime import datetime
+import gspread
+from google.oauth2.service_account import Credentials
 
 logging.basicConfig(
     level=logging.INFO,
@@ -34,6 +40,10 @@ app = FastAPI(
     description="API para extraer datos de capturas Yape/Plin con OCR",
     version="1.5.0"
 )
+
+# Montar archivos estáticos (CSS, JS, imágenes) y motor de templates
+app.mount("/static", StaticFiles(directory="static"), name="static")
+templates = Jinja2Templates(directory="templates")
 
 
 # Lista negra de palabras que NO pueden ser parte de un nombre
@@ -63,6 +73,7 @@ PREFIJOS_MONTO_CONFUSOS = [
     r'\bal\b', r'\bel\b', r'\bs[\'`´]',
     r'\boz\b', r'\bq1\b',
     r'\bg/', r'\b5/', r'\b8/',
+    r'\b51', r'\b81', r'\bS1', r'\bs1',
 ]
 
 
@@ -79,7 +90,8 @@ def root():
         "endpoints": {
             "health": "/health",
             "procesar": "POST /procesar-imagen",
-            "swagger": "/docs"
+            "swagger": "/docs",
+            "dashboard": "/dashboard"
         }
     }
 
@@ -90,6 +102,68 @@ def health():
         "status": "ok",
         "timestamp": datetime.now().isoformat(),
         "service": "cobrapp-ocr-api"
+    }
+
+
+# ====================================================
+#       LECTOR DE GOOGLE SHEETS PARA DASHBOARD
+# ====================================================
+
+SHEET_ID_DASHBOARD = "1MrKuC-eebDtugHMYMH-fPtrVY8U1BMuItK0rjgFEsf0"
+CREDENTIALS_FILE_DASHBOARD = "credenciales-google.json"
+
+
+def leer_pagos_del_sheet():
+    """Lee todas las filas del Google Sheet y devuelve una lista de pagos."""
+    try:
+        scopes = [
+            "https://www.googleapis.com/auth/spreadsheets.readonly",
+            "https://www.googleapis.com/auth/drive.readonly"
+        ]
+        creds = Credentials.from_service_account_file(
+            CREDENTIALS_FILE_DASHBOARD, scopes=scopes
+        )
+        client = gspread.authorize(creds)
+        sheet = client.open_by_key(SHEET_ID_DASHBOARD).sheet1
+        return sheet.get_all_records()
+    except Exception as e:
+        logger.exception(f"Error leyendo Google Sheets: {e}")
+        return []
+
+
+def calcular_estadisticas_del_dia():
+    """
+    Función helper que centraliza el cálculo de estadísticas del día.
+    Retorna un dict con todos los datos pre-calculados.
+    """
+    pagos = leer_pagos_del_sheet()
+    fecha_hoy = datetime.now().strftime('%d/%m/%Y')
+    
+    pagos_hoy = [p for p in pagos if p.get("Fecha", "") == fecha_hoy]
+    
+    total_pagos = len(pagos_hoy)
+    monto_total = sum(float(p.get("Monto", 0) or 0) for p in pagos_hoy)
+    yape_count = sum(1 for p in pagos_hoy if p.get("Tipo") == "Yape")
+    plin_count = sum(1 for p in pagos_hoy if p.get("Tipo") == "Plin")
+    monto_yape = sum(
+        float(p.get("Monto", 0) or 0)
+        for p in pagos_hoy if p.get("Tipo") == "Yape"
+    )
+    monto_plin = sum(
+        float(p.get("Monto", 0) or 0)
+        for p in pagos_hoy if p.get("Tipo") == "Plin"
+    )
+    
+    return {
+        "fecha_hoy": fecha_hoy,
+        "hora_actualizacion": datetime.now().strftime('%H:%M:%S'),
+        "pagos_hoy": pagos_hoy,
+        "total_pagos": total_pagos,
+        "monto_total": monto_total,
+        "yape_count": yape_count,
+        "plin_count": plin_count,
+        "monto_yape": monto_yape,
+        "monto_plin": monto_plin,
     }
 
 
@@ -184,39 +258,34 @@ def extraer_monto(texto: str, tipo: str) -> str | None:
 
 
 # ====================================================
-#              EXTRACTOR DE BENEFICIARIO (v2 — robusto)
+#              EXTRACTOR DE BENEFICIARIO
 # ====================================================
 
 def es_token_de_nombre(token: str) -> bool:
-    """
-    Determina si un token (palabra) puede ser parte de un nombre.
-    Acepta: 'Julio', 'Med*', 'García', 'Pérez', 'José'
-    Rechaza: 'DATOS', '425', '8', 'Yape', '|', '()'
-    """
-    # Quitar asteriscos al final (censura Yape)
+    """Valida si un token cumple las reglas de un nombre propio."""
     token_clean = re.sub(r'\*+$', '', token)
-    # Quitar puntuación al final (puntos, comas, dos puntos)
     token_clean = re.sub(r'[.,;:!?]+$', '', token_clean)
     
     if len(token_clean) < 2:
         return False
     
-    # Debe empezar con letra mayúscula
     if not token_clean[0].isalpha() or not token_clean[0].isupper():
         return False
     
-    # Verificar contra lista negra (mayúsculas, sin asteriscos)
     token_upper = re.sub(r'[^A-ZÁÉÍÓÚÑ]', '', token_clean.upper())
     if token_upper in PALABRAS_NO_NOMBRE:
         return False
     
-    # No debe ser solo dígitos
     if token_clean.replace('.', '').isdigit():
         return False
     
-    # Debe tener al menos 2 caracteres alfabéticos
     letras_count = sum(1 for c in token_clean if c.isalpha())
     if letras_count < 2:
+        return False
+    
+    # Rechazar tokens 100% mayúscula con 4+ letras
+    letras_solo = ''.join(c for c in token_clean if c.isalpha())
+    if len(letras_solo) >= 4 and letras_solo.isupper():
         return False
     
     return True
@@ -238,11 +307,8 @@ def buscar_nombre_en_lineas(lineas: list[str], idx_inicio: int, max_lineas: int 
         
         tokens_validos = [t for t in tokens if es_token_de_nombre(t)]
         
-        # Si AL MENOS la mitad de los tokens (y mínimo 1) son válidos → es nombre
         if len(tokens_validos) >= 1 and len(tokens_validos) >= len(tokens) / 2:
-            # Reconstruir el nombre con los tokens válidos
             resultado = ' '.join(t for t in tokens if es_token_de_nombre(t))
-            # Limpiar puntuación final
             resultado = re.sub(r'[.,;:!?]+$', '', resultado).strip()
             
             if len(resultado) >= 3:
@@ -255,13 +321,12 @@ def buscar_nombre_en_lineas(lineas: list[str], idx_inicio: int, max_lineas: int 
 def extraer_beneficiario(texto: str, tipo: str) -> str | None:
     """
     Estrategia robusta para detectar al beneficiario:
-    
     1. Patrones explícitos ('Yapeaste a XXX', 'Enviado a XXX')
     2. Heurística Yape: buscar líneas válidas DESPUÉS del 'yapeaste'/'operación exitosa'
     3. Fallback: cualquier línea con tokens capitalizados válidos
     """
     
-    # ------ Estrategia 1: patrones explícitos ------
+    # Estrategia 1: patrones explícitos
     patrones_explicitos = [
         r'Yapeaste\s+(?:a|al)\s+([A-ZÁÉÍÓÚÑa-záéíóúñ][^\n]{2,40})',
         r'Enviad[oa]\s+a[:\s]+([A-ZÁÉÍÓÚÑa-záéíóúñ][^\n]{2,40})',
@@ -279,20 +344,19 @@ def extraer_beneficiario(texto: str, tipo: str) -> str | None:
                 logger.debug(f"Beneficiario [E1-explícito]: {resultado}")
                 return resultado
     
-    # ------ Estrategia 2: heurística contextual Yape/Plin ------
+    # Estrategia 2: heurística contextual Yape/Plin
     lineas = [l.strip() for l in texto.split('\n') if l.strip()]
     triggers = ['yapeaste', 'operación exitosa', 'operacion exitosa', 'enviaste']
     
     for i, linea in enumerate(lineas):
         if any(t in linea.lower() for t in triggers):
-            # Buscar nombre en las siguientes 5 líneas (puede haber monto en medio)
             nombre = buscar_nombre_en_lineas(lineas, i + 1, max_lineas=5)
             if nombre:
                 logger.debug(f"Beneficiario [E2-heurística Yape]: {nombre}")
                 return nombre
             break
     
-    # ------ Estrategia 3: fallback general ------
+    # Estrategia 3: fallback general
     nombre = buscar_nombre_en_lineas(lineas, 0, max_lineas=len(lineas))
     if nombre:
         logger.debug(f"Beneficiario [E3-fallback]: {nombre}")
@@ -352,7 +416,7 @@ def detectar_tipo_pago(texto: str) -> str:
 
 
 # ====================================================
-#                ENDPOINT PRINCIPAL
+#                ENDPOINT OCR PRINCIPAL
 # ====================================================
 
 @app.post("/procesar-imagen")
@@ -407,3 +471,113 @@ async def procesar_imagen(file: UploadFile = File(...)):
     except Exception as e:
         logger.exception(f"Error: {e}")
         raise HTTPException(status_code=500, detail=str(e))
+
+
+# ====================================================
+#         DASHBOARD HTML — PORTAL ADMIN
+#         (usa templates de Jinja2 + CSS estático)
+# ====================================================
+
+@app.get("/dashboard", response_class=HTMLResponse)
+def dashboard_inicio(request: Request):
+    """Página de bienvenida del Dashboard Admin con navegación."""
+    return templates.TemplateResponse("home.html", {"request": request})
+
+
+@app.get("/dashboard/pagos", response_class=HTMLResponse)
+def dashboard_pagos(request: Request):
+    """Vista HTML con la tabla de pagos del día."""
+    stats = calcular_estadisticas_del_dia()
+    
+    # Preparar las filas para el template (en orden inverso, más reciente primero)
+    pagos_para_template = []
+    for p in reversed(stats["pagos_hoy"]):
+        pagos_para_template.append({
+            "fecha": p.get("Fecha", ""),
+            "hora": p.get("Hora", ""),
+            "pagador": p.get("Pagador", ""),
+            "beneficiario": p.get("Beneficiario", ""),
+            "monto": float(p.get("Monto", 0) or 0),
+            "tipo": p.get("Tipo", ""),
+            "operacion": p.get("N° Operación", "")
+        })
+    
+    return templates.TemplateResponse("pagos.html", {
+        "request": request,
+        "fecha_hoy": stats["fecha_hoy"],
+        "hora_actualizacion": stats["hora_actualizacion"],
+        "total_pagos": stats["total_pagos"],
+        "monto_total": stats["monto_total"],
+        "yape_count": stats["yape_count"],
+        "plin_count": stats["plin_count"],
+        "pagos_hoy_reversed": pagos_para_template,
+    })
+
+
+@app.get("/dashboard/reporte", response_class=HTMLResponse)
+def dashboard_reporte(request: Request):
+    """Vista HTML con el resumen del reporte del día."""
+    stats = calcular_estadisticas_del_dia()
+    
+    return templates.TemplateResponse("reporte.html", {
+        "request": request,
+        "fecha_hoy": stats["fecha_hoy"],
+        "hora_actualizacion": stats["hora_actualizacion"],
+        "total_pagos": stats["total_pagos"],
+        "monto_total": stats["monto_total"],
+        "yape_count": stats["yape_count"],
+        "plin_count": stats["plin_count"],
+        "monto_yape": stats["monto_yape"],
+        "monto_plin": stats["monto_plin"],
+    })
+
+
+# ====================================================
+#         ENDPOINTS REST PARA INTEGRACIONES (JSON)
+# ====================================================
+
+@app.get("/pagos")
+def get_pagos():
+    """
+    Lista todos los pagos registrados del día actual.
+    Devuelve JSON con la lista de pagos y un resumen.
+    """
+    stats = calcular_estadisticas_del_dia()
+    
+    return {
+        "fecha": stats["fecha_hoy"],
+        "total_pagos": stats["total_pagos"],
+        "monto_total": round(stats["monto_total"], 2),
+        "pagos_yape": stats["yape_count"],
+        "pagos_plin": stats["plin_count"],
+        "pagos": stats["pagos_hoy"]
+    }
+
+
+@app.get("/reporte")
+def get_reporte():
+    """
+    Retorna el reporte resumido del día actual con el total recaudado.
+    Pensado para integraciones externas (dashboards, contabilidad, etc.).
+    """
+    stats = calcular_estadisticas_del_dia()
+    
+    return {
+        "fecha": stats["fecha_hoy"],
+        "resumen": {
+            "total_pagos": stats["total_pagos"],
+            "monto_total_recaudado": round(stats["monto_total"], 2),
+            "moneda": "PEN"
+        },
+        "desglose_por_tipo": {
+            "yape": {
+                "cantidad": stats["yape_count"],
+                "monto": round(stats["monto_yape"], 2)
+            },
+            "plin": {
+                "cantidad": stats["plin_count"],
+                "monto": round(stats["monto_plin"], 2)
+            }
+        },
+        "generado_en": datetime.now().isoformat()
+    }

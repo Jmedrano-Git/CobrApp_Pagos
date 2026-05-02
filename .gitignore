@@ -98,3 +98,11 @@ $RECYCLE.BIN/
 n8n_credentials*
 
 /site/
+
+# Credenciales de Google Cloud Service Account (CRÍTICO)
+credenciales-google.json
+credentials-google.json
+**/credenciales-google.json
+**/credentials-*.json
+service-account*.json
+google-credentials*.json
