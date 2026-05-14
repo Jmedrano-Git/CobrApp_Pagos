@@ -9,9 +9,9 @@ services:
       - N8N_BASIC_AUTH_ACTIVE=true
       - N8N_BASIC_AUTH_USER=admin
       - N8N_BASIC_AUTH_PASSWORD=${N8N_PASSWORD}
-      - N8N_HOST=outage-flier-resort.ngrok-free.dev
+      - N8N_HOST=${NGROK_DOMAIN}
       - N8N_PROTOCOL=https
-      - WEBHOOK_URL=https://outage-flier-resort.ngrok-free.dev/
+      - WEBHOOK_URL=https://${NGROK_DOMAIN}/
       - GENERIC_TIMEZONE=America/Lima
       - TZ=America/Lima
       - N8N_RUNNERS_ENABLED=true
@@ -39,6 +39,7 @@ services:
     volumes:
       - ./pagos:/app/pagos
       - ./database:/app/database
+      - ./python-api/credenciales-google.json:/app/credenciales-google.json:ro
     networks:
       - cobrapp-net
     healthcheck:
@@ -54,7 +55,7 @@ services:
     restart: unless-stopped
     environment:
       - NGROK_AUTHTOKEN=${NGROK_AUTHTOKEN}
-    command: http --domain=outage-flier-resort.ngrok-free.dev n8n:5678
+    command: http --domain=${NGROK_DOMAIN} n8n:5678
     ports:
       - "4040:4040"
     networks:
